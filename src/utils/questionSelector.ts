@@ -1,10 +1,11 @@
 
 import { Question, Difficulty, Topic, ExamConfig, ExamResult } from '../types';
-import { questionStore } from './questionStore';
+import { topicTree } from './topicTree';
+import { questionGraph } from './questionGraph';
 
 /**
  * QuestionSelector - implements algorithms for selecting questions
- * Uses weighted random selection and ensures diversity in topics and difficulties
+ * Uses tree and graph traversal algorithms along with weighted random selection
  */
 export class QuestionSelector {
   /**
@@ -58,21 +59,24 @@ export class QuestionSelector {
   }
 
   /**
-   * Get available questions that match the specified topics
+   * Get available questions that match the specified topics using tree traversal
    * @param topics Array of topics to filter by
    * @returns Array of questions matching the topics
    */
   private getAvailableQuestions(topics: Topic[]): Question[] {
     if (topics.length === 0) {
-      return questionStore.getAllQuestions();
+      return topicTree.getAllQuestions();
     }
     
-    const questions: Question[] = [];
+    // Use Set to avoid duplicates when getting questions from multiple topics
+    const questionSet = new Set<Question>();
+    
     topics.forEach(topic => {
-      questions.push(...questionStore.getQuestionsByTopic(topic));
+      const topicQuestions = topicTree.getQuestionsByTopic(topic);
+      topicQuestions.forEach(q => questionSet.add(q));
     });
     
-    return questions;
+    return Array.from(questionSet);
   }
 
   /**
@@ -139,6 +143,7 @@ export class QuestionSelector {
 
   /**
    * Select questions with diversity across topics
+   * Uses graph connectivity to ensure related questions are selected
    * @param questions Available questions
    * @param count Number of questions to select
    * @param topics Array of topics for diversity
@@ -200,6 +205,22 @@ export class QuestionSelector {
       const selectedFromTopic = this.getRandomElements(topicQuestions, topicCount);
       selected.push(...selectedFromTopic);
       
+      // Add some related questions if available through graph connections
+      if (selectedFromTopic.length > 0 && selected.length < count) {
+        const sampleQuestion = selectedFromTopic[0];
+        const relatedQuestions = questionGraph.getRelatedQuestions(sampleQuestion.id, 1);
+        
+        // Filter related questions that match our criteria and aren't already selected
+        const eligibleRelated = relatedQuestions.filter(q => 
+          questions.includes(q) && !selected.includes(q)
+        );
+        
+        if (eligibleRelated.length > 0 && selected.length < count) {
+          // Add one related question if possible
+          selected.push(eligibleRelated[0]);
+        }
+      }
+      
       // Remove selected questions from available pool
       selectedFromTopic.forEach(q => {
         const index = topicQuestions.indexOf(q);
@@ -208,7 +229,8 @@ export class QuestionSelector {
         }
       });
       
-      remainingCount -= topicCount;
+      remainingCount = count - selected.length;
+      if (remainingCount <= 0) break;
     }
     
     // Second pass: fill any remaining slots with random questions

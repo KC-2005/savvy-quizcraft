@@ -35,6 +35,20 @@ export interface TopicMap {
   };
 }
 
+// Tree data structure for topic categorization
+export interface TopicNode {
+  id: string;
+  name: string;
+  children: TopicNode[];
+  questions: Question[];
+}
+
+// Graph data structure for related questions
+export interface QuestionGraph {
+  nodes: Map<string, Question>;
+  edges: Map<string, string[]>; // Maps question ID to related question IDs
+}
+
 export interface ExamConfig {
   numQuestions: number;
   difficulties: {

@@ -7,7 +7,7 @@ import ExamGenerator from '@/components/ExamGenerator';
 import ExamOutput from '@/components/ExamOutput';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { motion } from 'framer-motion';
-import { Plus, Settings } from 'lucide-react';
+import { Plus, Settings, TreeDeciduous, CircleArrowRight } from 'lucide-react';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState<string>('generate');
